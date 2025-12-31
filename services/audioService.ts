@@ -3,6 +3,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 
 let activeSource: AudioBufferSourceNode | null = null;
 let audioContext: AudioContext | null = null;
+let onStopCallback: (() => void) | null = null;
 
 function decode(base64: string) {
   const binaryString = atob(base64);
@@ -37,15 +38,17 @@ export const stopSpeech = () => {
   if (activeSource) {
     try {
       activeSource.stop();
-    } catch (e) {
-      // Ignore errors if already stopped
-    }
+    } catch (e) {}
     activeSource = null;
+  }
+  if (onStopCallback) {
+    onStopCallback();
+    onStopCallback = null;
   }
 };
 
-export const speakText = async (text: string) => {
-  // Stop any currently playing audio first
+export const speakText = async (text: string, onStart?: () => void, onEnd?: () => void) => {
+  // Always stop existing audio before starting new one
   stopSpeech();
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
@@ -71,27 +74,23 @@ export const speakText = async (text: string) => {
       audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     }
 
-    const audioBuffer = await decodeAudioData(
-      decode(base64Audio),
-      audioContext,
-      24000,
-      1,
-    );
+    const audioBuffer = await decodeAudioData(decode(base64Audio), audioContext, 24000, 1);
 
     activeSource = audioContext.createBufferSource();
     activeSource.buffer = audioBuffer;
     activeSource.connect(audioContext.destination);
-    activeSource.start();
     
-    return new Promise((resolve) => {
-      if (activeSource) {
-        activeSource.onended = () => {
-          activeSource = null;
-          resolve(true);
-        };
-      }
-    });
+    onStopCallback = onEnd || null;
+    activeSource.onended = () => {
+      if (onEnd) onEnd();
+      activeSource = null;
+      onStopCallback = null;
+    };
+
+    if (onStart) onStart();
+    activeSource.start();
   } catch (error) {
     console.error("Audio generation failed:", error);
+    if (onEnd) onEnd();
   }
 };
