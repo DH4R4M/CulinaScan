@@ -1,0 +1,7 @@
+{
+  "name": "CulinaScan - Sustainable AI Cooking Assistant",
+  "description": "An advanced AI-powered assistant that analyzes food ingredient photos to generate waste-reducing recipes and sustainability tips.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
