@@ -4,12 +4,22 @@ export interface Recipe {
   ingredientsUsed: string[];
   instructions: string[];
   emoji: string;
+  prepTime: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  calories: number;
+}
+
+export interface SustainabilityImpact {
+  co2SavedKg: number;
+  score: number;
+  reasoning: string;
 }
 
 export interface AnalysisResult {
   identifiedIngredients: string[];
   recipes: Recipe[];
   storageTip: string;
+  impact: SustainabilityImpact;
 }
 
 export interface AppState {

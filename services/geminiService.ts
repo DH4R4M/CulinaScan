@@ -6,11 +6,17 @@ export const analyzeIngredients = async (base64Image: string): Promise<AnalysisR
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   
   const prompt = `
-    Act as CulinaScan, a world-class sustainable cooking assistant. 
-    Analyze the provided image of food ingredients and perform these tasks:
-    1. Identify all edible ingredients visible in the photo.
-    2. Generate exactly two distinct recipes that use ONLY the identified ingredients plus basic pantry staples (salt, oil, pepper, water). 
-    3. Provide one highly effective sustainability tip for storing these items to maximize shelf life.
+    Act as CulinaScan, a premium sustainable cooking assistant. 
+    Analyze the provided image and:
+    1. Identify all edible ingredients.
+    2. Generate exactly two gourmet-style waste-reducing recipes. 
+    3. For each recipe include:
+       - title, emoji, ingredientsUsed, instructions.
+       - prepTime (e.g. "15 mins").
+       - difficulty ("Easy", "Medium", or "Hard").
+       - calories (estimated total calories per serving).
+    4. Provide one storage tip for longevity.
+    5. Calculate sustainability impact metrics (co2SavedKg, score, reasoning).
     
     Return the data in strict JSON format.
   `;
@@ -37,8 +43,7 @@ export const analyzeIngredients = async (base64Image: string): Promise<AnalysisR
         properties: {
           identifiedIngredients: {
             type: Type.ARRAY,
-            items: { type: Type.STRING },
-            description: "List of identified edible ingredients."
+            items: { type: Type.STRING }
           },
           recipes: {
             type: Type.ARRAY,
@@ -48,14 +53,26 @@ export const analyzeIngredients = async (base64Image: string): Promise<AnalysisR
                 title: { type: Type.STRING },
                 ingredientsUsed: { type: Type.ARRAY, items: { type: Type.STRING } },
                 instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
-                emoji: { type: Type.STRING, description: "A relevant emoji for the dish." }
+                emoji: { type: Type.STRING },
+                prepTime: { type: Type.STRING },
+                difficulty: { type: Type.STRING, enum: ["Easy", "Medium", "Hard"] },
+                calories: { type: Type.INTEGER }
               },
-              required: ["title", "ingredientsUsed", "instructions", "emoji"]
+              required: ["title", "ingredientsUsed", "instructions", "emoji", "prepTime", "difficulty", "calories"]
             }
           },
-          storageTip: { type: Type.STRING }
+          storageTip: { type: Type.STRING },
+          impact: {
+            type: Type.OBJECT,
+            properties: {
+              co2SavedKg: { type: Type.NUMBER },
+              score: { type: Type.INTEGER },
+              reasoning: { type: Type.STRING }
+            },
+            required: ["co2SavedKg", "score", "reasoning"]
+          }
         },
-        required: ["identifiedIngredients", "recipes", "storageTip"]
+        required: ["identifiedIngredients", "recipes", "storageTip", "impact"]
       }
     }
   });
