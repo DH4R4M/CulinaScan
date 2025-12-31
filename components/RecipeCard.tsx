@@ -4,11 +4,13 @@ import { Recipe } from '../types';
 
 interface RecipeCardProps {
   recipe: Recipe;
+  isAdded: boolean;
+  onAdd: (recipe: Recipe) => void;
 }
 
-const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
+const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, isAdded, onAdd }) => {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden flex flex-col h-full">
+    <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden flex flex-col h-full hover:shadow-md transition-shadow">
       <div className="p-6 bg-emerald-50/50 border-b border-emerald-100 flex items-center justify-between">
         <h3 className="text-xl font-bold text-emerald-900">{recipe.title}</h3>
         <span className="text-3xl" role="img" aria-label="recipe icon">{recipe.emoji}</span>
@@ -35,6 +37,27 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe }) => {
             ))}
           </ol>
         </div>
+      </div>
+      <div className="p-4 bg-emerald-50/30 border-t border-emerald-50">
+        <button
+          onClick={() => onAdd(recipe)}
+          disabled={isAdded}
+          className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center space-x-2 ${
+            isAdded 
+            ? 'bg-emerald-100 text-emerald-600 cursor-default' 
+            : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-sm hover:shadow-md'
+          }`}
+        >
+          {isAdded ? (
+            <>
+              <span>✓ Added to Plan</span>
+            </>
+          ) : (
+            <>
+              <span>+ Add to Meal Plan</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

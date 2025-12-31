@@ -19,3 +19,8 @@ export interface AppState {
   error: string | null;
   statusMessage: string;
 }
+
+export interface MealPlanItem extends Recipe {
+  id: string;
+  savedAt: number;
+}
