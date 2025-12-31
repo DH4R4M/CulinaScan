@@ -3,7 +3,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 export const analyzeIngredients = async (base64Image: string): Promise<AnalysisResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("API_KEY is missing. Please ensure it is set in your environment variables.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   
   const prompt = `
     Act as CulinaScan, a world-class sustainable cooking assistant. 
@@ -22,46 +28,54 @@ export const analyzeIngredients = async (base64Image: string): Promise<AnalysisR
     },
   };
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: { 
-      parts: [
-        { text: prompt },
-        imagePart 
-      ] 
-    },
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          identifiedIngredients: {
-            type: Type.ARRAY,
-            items: { type: Type.STRING },
-            description: "List of identified edible ingredients."
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: { 
+        parts: [
+          { text: prompt },
+          imagePart 
+        ] 
+      },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            identifiedIngredients: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "List of identified edible ingredients."
+            },
+            recipes: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  ingredientsUsed: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  emoji: { type: Type.STRING, description: "A relevant emoji for the dish." }
+                },
+                required: ["title", "ingredientsUsed", "instructions", "emoji"]
+              }
+            },
+            storageTip: { type: Type.STRING }
           },
-          recipes: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                ingredientsUsed: { type: Type.ARRAY, items: { type: Type.STRING } },
-                instructions: { type: Type.ARRAY, items: { type: Type.STRING } },
-                emoji: { type: Type.STRING, description: "A relevant emoji for the dish." }
-              },
-              required: ["title", "ingredientsUsed", "instructions", "emoji"]
-            }
-          },
-          storageTip: { type: Type.STRING }
-        },
-        required: ["identifiedIngredients", "recipes", "storageTip"]
+          required: ["identifiedIngredients", "recipes", "storageTip"]
+        }
       }
-    }
-  });
+    });
 
-  const text = response.text;
-  if (!text) throw new Error("No response from AI");
-  
-  return JSON.parse(text) as AnalysisResult;
+    const text = response.text;
+    if (!text) throw new Error("The AI model returned an empty response.");
+    
+    return JSON.parse(text) as AnalysisResult;
+  } catch (error: any) {
+    console.error("Gemini API Error:", error);
+    if (error.message?.includes("403")) {
+      throw new Error("API Key permission denied. Ensure your Gemini API key is active and has billing enabled if required.");
+    }
+    throw error;
+  }
 };
